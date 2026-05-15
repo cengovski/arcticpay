@@ -12,8 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import {
   initiateBridgeTransfer,
-  isFastTransferEligible,
-  fetchFastAllowance,
   ChainName,
 } from "@/lib/cctpBridge";
 import { checkGaslessLimit, formatGaslessStatus } from "@/lib/gaslessPaymaster";
@@ -39,20 +37,22 @@ export function BridgePanel() {
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [dailyGaslessSpent, setDailyGaslessSpent] = useState(0);
 
-  // Fetch Fast Transfer allowance on mount
+  // Fetch Fast Transfer allowance from public Iris endpoint
   useEffect(() => {
-    fetchFastAllowance().then(setFastAllowance);
+    fetch("https://iris-api-sandbox.circle.com/v2/fastBurn/USDC/allowance")
+      .then((r) => r.json())
+      .then((d) => setFastAllowance(d.allowance?.toString() || "0"))
+      .catch(() => setFastAllowance("0"));
   }, []);
 
   // Check fast transfer eligibility when amount changes
   useEffect(() => {
     if (amount && parseFloat(amount) > 0) {
-      isFastTransferEligible(amount).then(({ eligible, allowance }) => {
-        setFastEligible(eligible);
-        setFastAllowance(allowance);
-      });
+      const parsedAmount = parseFloat(amount);
+      const parsedAllowance = parseFloat(fastAllowance);
+      setFastEligible(parsedAmount <= parsedAllowance);
     }
-  }, [amount]);
+  }, [amount, fastAllowance]);
 
   const handleBridge = async () => {
     if (!amount || !recipient) return;
