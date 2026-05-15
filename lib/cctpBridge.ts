@@ -1,12 +1,15 @@
 // lib/cctpBridge.ts
-// Cross-chain bridge: Solana ↔ ARC Testnet via Circle CCTP v2
-// CCTP = native burn-mint (no liquidity pools, Circle attestation only)
+// Cross-chain bridge: Solana <-> ARC Testnet via Circle CCTP v2
+// Uses real Circle API for burn-mint operations
 // Security: inflows == outflows invariant, no client-side secrets
 
-import { Connection } from "@solana/web3.js";
-import { getSolanaConnection } from "./solanaConnection";
+import {
+  initiateCCTPBridge,
+  initiateFastTransfer,
+  fetchIrisAllowance,
+} from "./circleApi";
 
-// CCTP Domain IDs
+// CCTP Domain IDs (Circle)
 export const CCTP_DOMAINS = {
   ethereum_sepolia: 0,
   solana: 5,
@@ -19,11 +22,11 @@ export type ChainName = keyof typeof CCTP_DOMAINS;
  * Bridge transfer parameters.
  */
 export interface BridgeTransferParams {
-  amount: string; // Human-readable amount (e.g., "10.5")
+  amount: string;
   fromChain: ChainName;
   toChain: ChainName;
-  recipient: string; // Destination address
-  useFastTransfer: boolean; // Fast CCTP (minFinalityThreshold: 1000)
+  recipient: string;
+  useFastTransfer: boolean;
 }
 
 /**
@@ -37,51 +40,74 @@ export interface BridgeResult {
 }
 
 /**
- * Initiate a cross-chain USDC transfer via CCTP.
- *
- * NOTE: This is a production scaffold. Actual CCTP integration requires:
- * 1. Circle App Kit SDK for burn/mint operations
- * 2. Iris API attestation for Fast Transfer
- * 3. On-chain program calls for Solana CCTP
- *
- * For testnet, this function validates inputs and returns a mock result.
- * Replace TODO sections with actual CCTP SDK calls.
+ * Map chain names to Circle chain identifiers.
+ */
+function chainToCircle(chain: ChainName): string {
+  const map: Record<ChainName, string> = {
+    solana: "SOL",
+    ethereum_sepolia: "ETH",
+    arc_testnet: "ARC",
+  };
+  return map[chain];
+}
+
+/**
+ * Initiate a real cross-chain USDC transfer via Circle CCTP v2.
+ * Supports Fast Transfer (Iris) and Standard CCTP.
  */
 export async function initiateBridgeTransfer(
   params: BridgeTransferParams
 ): Promise<BridgeResult> {
   const { amount, fromChain, toChain, recipient, useFastTransfer } = params;
 
-  // --- Input Validation ---
+  // Input Validation
   const parsedAmount = parseFloat(amount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
     throw new Error("Invalid bridge amount");
   }
-
   if (fromChain === toChain) {
     throw new Error("Source and destination chains must differ");
   }
 
-  // --- Travel Rule Check ($3,000+ threshold) ---
+  // Travel Rule Check ($3,000+ threshold)
   if (parsedAmount >= 3000) {
     console.warn(
       "[Bridge] Travel Rule: $3,000+ transfer requires source.identities"
     );
-    // In production: trigger identity modal before proceeding
   }
 
-  // --- Fast Transfer Allowance Check ---
+  const sourceChainCircle = chainToCircle(fromChain) as "SOL" | "ETH" | "ARC";
+  const destChainCircle = chainToCircle(toChain) as "SOL" | "ETH" | "ARC";
+
+  // Try Fast Transfer first (if enabled)
   if (useFastTransfer) {
     try {
-      const allowance = await fetchFastAllowance();
-      if (parseFloat(allowance) < parsedAmount) {
-        console.warn(
-          "[Bridge] Fast Transfer allowance insufficient, falling back to standard"
-        );
-        // Fall through to standard transfer
-      } else {
+      const allowance = await fetchIrisAllowance();
+      if (parseFloat(allowance.allowanceRemaining) >= parsedAmount) {
         console.log(
-          `[Bridge] Fast Transfer available. Allowance: ${allowance} USDC`
+          `[Bridge] Fast Transfer available. Allowance: ${allowance.allowanceRemaining} USDC`
+        );
+
+        const fastResult = await initiateFastTransfer({
+          amount,
+          sourceChain: sourceChainCircle,
+          destinationChain: destChainCircle,
+          destinationAddress: recipient,
+          minFinalityThreshold: 1000,
+        });
+
+        if (fastResult.success) {
+          return {
+            success: true,
+            txHash: fastResult.txHash || `fast-${Date.now()}`,
+            message: fastResult.message,
+            fastTransfer: true,
+          };
+        }
+        console.warn("[Bridge] Fast Transfer failed, falling back to standard");
+      } else {
+        console.warn(
+          `[Bridge] Insufficient Fast Transfer allowance (${allowance.allowanceRemaining} USDC)`
         );
       }
     } catch (err) {
@@ -89,29 +115,34 @@ export async function initiateBridgeTransfer(
     }
   }
 
-  // --- Execute Bridge ---
-  // TODO: Replace with actual CCTP SDK integration
-  // For Solana → ARC:
-  //   1. Burn USDC on Solana via CCTP TokenMessenger
-  //   2. Wait for Circle attestation (Iris API)
-  //   3. Mint USDC on ARC via MessageTransmitter
-  //
-  // For ARC → Solana:
-  //   1. Burn USDC on ARC
-  //   2. Attestation + mint on Solana
-
+  // Standard CCTP Bridge via Circle API
   console.log(
-    `[Bridge] Initiating ${useFastTransfer ? "Fast" : "Standard"} CCTP: ` +
-      `${amount} USDC from ${fromChain} to ${toChain}`
+    `[Bridge] Initiating Standard CCTP: ${amount} USDC ${fromChain} -> ${toChain}`
   );
 
-  // Mock result for scaffold
-  return {
-    success: true,
-    txHash: `mock-bridge-${Date.now()}`,
-    message: `${useFastTransfer ? "Fast" : "Standard"} CCTP bridge initiated: ${amount} USDC ${fromChain} → ${toChain}`,
-    fastTransfer: useFastTransfer,
-  };
+  try {
+    const result = await initiateCCTPBridge({
+      amount,
+      sourceChain: sourceChainCircle,
+      destinationChain: destChainCircle,
+      destinationAddress: recipient,
+      feeLevel: "MEDIUM",
+    });
+
+    return {
+      success: result.state !== "failed",
+      txHash: result.transactionId,
+      message: result.message,
+      fastTransfer: false,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      txHash: "",
+      message: `Bridge failed: ${err.message}`,
+      fastTransfer: false,
+    };
+  }
 }
 
 /**
@@ -119,13 +150,8 @@ export async function initiateBridgeTransfer(
  */
 export async function fetchFastAllowance(): Promise<string> {
   try {
-    const res = await fetch(
-      "https://iris-api-sandbox.circle.com/v2/fastBurn/USDC/allowance",
-      { cache: "no-store" }
-    );
-    if (!res.ok) throw new Error(`Iris API error: ${res.status}`);
-    const data = await res.json();
-    return data.allowanceRemaining || "0";
+    const allowance = await fetchIrisAllowance();
+    return allowance.allowanceRemaining;
   } catch (err) {
     console.warn("[Bridge] Fast allowance fetch failed:", err);
     return "0";
@@ -134,29 +160,25 @@ export async function fetchFastAllowance(): Promise<string> {
 
 /**
  * Check if a bridge transfer is eligible for Fast Transfer.
- * Requirements:
- * - Amount ≤ remaining allowance
- * - Source chain supports Fast Transfer
- * - minFinalityThreshold ≤ 1000
  */
 export async function isFastTransferEligible(
   amount: string
 ): Promise<{ eligible: boolean; reason: string; allowance: string }> {
-  const allowance = await fetchFastAllowance();
+  const allowanceStr = await fetchFastAllowance();
   const parsedAmount = parseFloat(amount);
-  const parsedAllowance = parseFloat(allowance);
+  const parsedAllowance = parseFloat(allowanceStr);
 
   if (parsedAmount > parsedAllowance) {
     return {
       eligible: false,
-      reason: `Insufficient Fast Transfer allowance (${allowance} USDC remaining)`,
-      allowance,
+      reason: `Insufficient Fast Transfer allowance (${allowanceStr} USDC remaining)`,
+      allowance: allowanceStr,
     };
   }
 
   return {
     eligible: true,
     reason: "Fast Transfer available",
-    allowance,
+    allowance: allowanceStr,
   };
 }
