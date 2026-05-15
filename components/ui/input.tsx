@@ -1,5 +1,5 @@
 // components/ui/input.tsx
-// Styled input component for Arctic theme
+// Styled input component — clean Arctic theme
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2",
-          "text-sm text-white placeholder:text-slate-500",
-          "focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-transparent",
+          "flex h-11 w-full rounded-xl border border-[var(--arctic-border)] bg-white/[0.03] px-3.5 py-2.5",
+          "text-sm text-white placeholder:text-[var(--arctic-muted)]/60",
+          "focus:outline-none focus-visible:border-[var(--arctic-cyan)]/40 focus-visible:ring-1 focus-visible:ring-[var(--arctic-cyan)]/20",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "transition-all duration-200",
           className

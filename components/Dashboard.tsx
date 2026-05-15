@@ -1,20 +1,23 @@
 // components/Dashboard.tsx
-// Main dashboard view with all Arctic Pay features
+// Main dashboard with tabbed navigation
+// Clean visual hierarchy with proper spacing
 
 "use client";
 
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { TokenSelector } from "@/components/TokenSelector";
 import { TransferForm } from "@/components/TransferForm";
 import { BridgePanel } from "@/components/BridgePanel";
 import { TokenMetadata } from "@/lib/solanaTokenMetadata";
-import { Activity, TrendingUp, Zap, Shield } from "lucide-react";
+import { Activity, Zap, TrendingUp, Shield, CheckCircle2 } from "lucide-react";
 
 type Tab = "transfer" | "bridge" | "stats";
 
-export function Dashboard() {
+interface DashboardProps {
+  walletType: "evm" | "solana" | null;
+}
+
+export function Dashboard({ walletType }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>("transfer");
   const [selectedMint, setSelectedMint] = useState(
     "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
@@ -28,7 +31,7 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Token Selector */}
       <TokenSelector
         selectedMint={selectedMint}
@@ -39,15 +42,15 @@ export function Dashboard() {
       />
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-white/10 pb-2">
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-[var(--arctic-border)]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               activeTab === tab.id
-                ? "bg-cyan-500/20 text-cyan-300"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
+                ? "bg-white/[0.08] text-white shadow-sm"
+                : "text-[var(--arctic-muted)] hover:text-white hover:bg-white/[0.04]"
             }`}
           >
             {tab.icon}
@@ -57,64 +60,66 @@ export function Dashboard() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "transfer" && (
-        <TransferForm mint={selectedMint} decimals={6} />
-      )}
+      <div className="mt-6">
+        {activeTab === "transfer" && (
+          <TransferForm mint={selectedMint} decimals={6} walletType={walletType} />
+        )}
 
-      {activeTab === "bridge" && <BridgePanel />}
+        {activeTab === "bridge" && <BridgePanel walletType={walletType} />}
 
-      {activeTab === "stats" && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* Fast Transfer Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4 text-amber-400" />
-                Fast Transfer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-white">Available</p>
-              <p className="text-xs text-slate-400 mt-1">
+        {activeTab === "stats" && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Fast Transfer */}
+            <div className="card-surface p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-amber-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Fast Transfer</span>
+              </div>
+              <p className="text-2xl font-bold text-white mb-1">Available</p>
+              <p className="text-xs text-[var(--arctic-muted)]">
                 Iris-powered soft finality (1000 confirmations)
               </p>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Gasless Paymaster */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Shield className="h-4 w-4 text-emerald-400" />
-                Gasless Paymaster
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-white">50 USDC/day</p>
-              <p className="text-xs text-slate-400 mt-1">
+            {/* Gasless Paymaster */}
+            <div className="card-surface p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-emerald-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Gasless Paymaster</span>
+              </div>
+              <p className="text-2xl font-bold text-white mb-1">50 USDC/day</p>
+              <p className="text-xs text-[var(--arctic-muted)]">
                 Daily limit per user
               </p>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Security */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Shield className="h-4 w-4 text-cyan-400" />
-                Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <Badge variant="success">CCTP Burn-Mint</Badge>
-                <Badge variant="success">ATA Validation</Badge>
-                <Badge variant="success">Travel Rule</Badge>
+            {/* Security */}
+            <div className="card-surface p-5 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-cyan-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">Security</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              <div className="flex flex-wrap gap-1.5">
+                {["CCTP Burn-Mint", "ATA Validation", "Travel Rule"].map((label) => (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300"
+                  >
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

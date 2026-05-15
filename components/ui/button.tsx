@@ -1,6 +1,5 @@
 // components/ui/button.tsx
-// Arctic-themed button component (shadcn/ui pattern)
-// Supports variants: default, outline, ghost, destructive
+// Arctic-themed button component — clean design
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -16,23 +15,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          // Base styles
-          "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200",
-          "focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:ring-offset-2 focus:ring-offset-slate-900",
-          "disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
-          // Variants
+          "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--arctic-cyan)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--arctic-dark)]",
+          "disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none",
           variant === "default" &&
-            "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/25",
+            "bg-gradient-to-r from-[var(--arctic-cyan)] to-[var(--arctic-blue)] text-white hover:brightness-110 shadow-lg shadow-cyan-500/20",
           variant === "outline" &&
-            "border border-cyan-500/30 bg-transparent text-cyan-300 hover:bg-cyan-500/10",
+            "border border-[var(--arctic-border)] bg-transparent text-[var(--arctic-text)] hover:bg-white/[0.04]",
           variant === "ghost" &&
-            "bg-transparent text-slate-300 hover:bg-white/5 hover:text-white",
+            "bg-transparent text-[var(--arctic-muted)] hover:text-white hover:bg-white/[0.04]",
           variant === "destructive" &&
             "bg-red-600 text-white hover:bg-red-500",
-          // Sizes
-          size === "sm" && "px-3 py-1.5 text-sm",
-          size === "md" && "px-4 py-2 text-sm",
-          size === "lg" && "px-6 py-3 text-base",
+          size === "sm" && "px-3 py-1.5 text-xs",
+          size === "md" && "px-4 py-2.5 text-sm",
+          size === "lg" && "px-6 py-3 text-sm",
           className
         )}
         ref={ref}

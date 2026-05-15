@@ -1,5 +1,5 @@
 // components/ui/card.tsx
-// Glassmorphic card component for Arctic theme
+// Clean card component — uses CSS variables
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -10,10 +10,7 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl",
-      className
-    )}
+    className={cn("card-surface", className)}
     {...props}
   />
 ));
@@ -23,7 +20,7 @@ const CardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pb-2", className)} {...props} />
+  <div ref={ref} className={cn("p-5 pb-0", className)} {...props} />
 ));
 CardHeader.displayName = "CardHeader";
 
@@ -33,7 +30,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-lg font-semibold text-white", className)}
+    className={cn("text-base font-semibold text-white", className)}
     {...props}
   />
 ));
@@ -43,7 +40,11 @@ const CardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <p ref={ref} className={cn("text-sm text-slate-400", className)} {...props} />
+  <p
+    ref={ref}
+    className={cn("text-xs text-[var(--arctic-muted)] mt-0.5", className)}
+    {...props}
+  />
 ));
 CardDescription.displayName = "CardDescription";
 
@@ -51,7 +52,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-2", className)} {...props} />
+  <div ref={ref} className={cn("p-5", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 

@@ -22,12 +22,12 @@ export default function RootLayout({
       <body className="antialiased">
         <div className="relative z-10 min-h-screen flex flex-col">
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-white/10 py-6 mt-12">
-            <div className="container mx-auto px-4 text-center">
-              <p className="text-xs text-slate-500">
-                Arctic Pay DApp — Built with Next.js 15 + Circle CCTP v2 + Solana
+          <footer className="border-t border-[var(--arctic-border)] py-8 mt-16">
+            <div className="max-w-5xl mx-auto px-5 text-center">
+              <p className="text-xs text-[var(--arctic-muted)]">
+                Arctic Pay — Built with Next.js 15 + Circle CCTP v2 + Solana
               </p>
-              <p className="text-xs text-slate-600 mt-1">
+              <p className="text-[10px] text-[var(--arctic-muted)]/50 mt-1">
                 Testnet only (Circle Sandbox + Solana Devnet + ARC Testnet)
               </p>
             </div>
