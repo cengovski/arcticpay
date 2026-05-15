@@ -1,0 +1,11 @@
+# Wrangler v3 configuration for Cloudflare Pages
+name = "arcticpay"
+compatibility_date = "2026-05-15"
+pages_build_output_dir = "out"
+
+[vars]
+NEXT_PUBLIC_CIRCLE_APP_KIT_KEY = "3e8a3f1e0504384b26c74b64c1802376:e2e1ab1e2c906a90eb24d9cf4ac31ffc"
+NEXT_PUBLIC_SOLANA_RPC_URL = "https://devnet.helius-rpc.com/?api-key=b64e7acf-85d0-4793-a69b-c5573c115e61"
+NEXT_PUBLIC_SOLANA_USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+NEXT_PUBLIC_ARC_TESTNET_RPC = "https://rpc-testnet.arctium.io"
+NEXT_PUBLIC_ARC_TESTNET_CHAIN_ID = "11111"

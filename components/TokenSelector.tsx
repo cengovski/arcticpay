@@ -16,11 +16,19 @@ interface TokenSelectorProps {
   onSelect: (mint: string, metadata: TokenMetadata | null) => void;
 }
 
-// Known tokens on Solana Devnet
+// Known tokens on Solana Devnet with fallback metadata
 const KNOWN_TOKENS = [
   {
     mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
     label: "USDC (Devnet)",
+    fallback: {
+      mint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      name: "USD Coin",
+      symbol: "USDC",
+      uri: "",
+      imageUri: null,
+      description: "USDC on Solana Devnet",
+    },
   },
 ];
 
@@ -40,13 +48,22 @@ export function TokenSelector({ selectedMint, onSelect }: TokenSelectorProps) {
         const connection = getSolanaConnection();
         const meta = await fetchTokenMetadata(connection, selectedMint);
         if (!cancelled) {
-          setMetadata(meta);
-          onSelect(selectedMint, meta);
+          // Use fetched metadata or fallback for known tokens
+          const fallback = KNOWN_TOKENS.find(
+            (t) => t.mint === selectedMint
+          )?.fallback;
+          const resolved = meta || fallback || null;
+          setMetadata(resolved);
+          onSelect(selectedMint, resolved);
         }
       } catch (err: any) {
         if (!cancelled) {
-          setError(err.message || "Failed to fetch metadata");
-          setMetadata(null);
+          // On error, try fallback
+          const fallback = KNOWN_TOKENS.find(
+            (t) => t.mint === selectedMint
+          )?.fallback;
+          setMetadata(fallback || null);
+          onSelect(selectedMint, fallback || null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -54,8 +71,10 @@ export function TokenSelector({ selectedMint, onSelect }: TokenSelectorProps) {
     }
 
     loadMetadata();
-    return () => { cancelled = true; };
-  }, [selectedMint, onSelect]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMint]);
 
   return (
     <Card className="w-full">
@@ -107,7 +126,10 @@ export function TokenSelector({ selectedMint, onSelect }: TokenSelectorProps) {
           {KNOWN_TOKENS.map((token) => (
             <button
               key={token.mint}
-              onClick={() => onSelect(token.mint, null)}
+              onClick={() => {
+                // Pass fallback metadata so parent can set mint + metadata
+                onSelect(token.mint, token.fallback || null);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 selectedMint === token.mint
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
